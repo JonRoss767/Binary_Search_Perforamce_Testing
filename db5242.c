@@ -1,6 +1,9 @@
 /*
   CSE 5242 Project 2, Fall 2024
-
+  Author: Benji Ofori
+          Gabe Richner
+          Johnathan Ross
+          Test
   See class project handout for more extensive documentation.
 */
 
