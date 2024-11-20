@@ -35,7 +35,7 @@ static int compare(const void *p1, const void *p2)
 int init(int64_t* data, int64_t* searches, int count)
 {
   for(int64_t i=0; i<count; i++){
-    searches[i] = random();
+    searches[i] = rand();
     data[i] = searches[i]+1;
   }
   qsort(data,count,sizeof(int64_t),compare);
@@ -45,7 +45,7 @@ int init(int64_t* data, int64_t* searches, int count)
 int band_init(int64_t* outer, int64_t size)
 {
   for(int64_t i=0; i<size; i++){
-    outer[i] = random();
+    outer[i] = rand();
   }
 }
 
@@ -103,7 +103,11 @@ inline int64_t low_bin_nb_arithmetic(int64_t* data, int64_t size, int64_t target
 
   while(left<right) {
 
-    /* YOUR CODE HERE */
+    mid = (left + right) / 2; 
+    // Check if the middle element is less then the target.
+    int64_t lessThan = (data[mid] < target);
+    left = left + lessThan * (mid + 1 - left); //update left if mid is less than the target.
+    right = right - (1 - lessThan) * (right - mid); //updates right if mid is greater or equal to the target.
 
   }
   return right;
@@ -121,9 +125,16 @@ inline int64_t low_bin_nb_mask(int64_t* data, int64_t size, int64_t target)
   */
   int64_t left=0;
   int64_t right=size;
+  int64_t mid;
 
-
-  /* YOUR CODE HERE */
+  while(left < right) {
+     mid = left + ((right - left) / 2);
+     //set up a mask
+     int64_t conditionMask = (target > data[mid]) - 1; //if target > data[mid] then the mask will be 0xFFFFFFFFFFFFFFFF, otherwise set to 0
+     left = (mid + 1) & conditionMask | left & ~conditionMask;
+     right = mid & ~conditionMask | right & conditionMask;
+    
+  }
 
 
   return right;
@@ -143,7 +154,30 @@ inline void low_bin_nb_4x(int64_t* data, int64_t size, int64_t* targets, int64_t
      Note that we're using the result array as the "right" elements in the search so no need for a return statement
   */
 
-    /* YOUR CODE HERE */
+    //intialize the arrays for left and right
+    int64_t left[4] = {0, 0, 0, 0};
+    int64_t mask[4];
+    int64_t mid[4];
+
+    for(int64_t i = 0; i < 4; i++) {
+      right[i] = size; //initalized to the size
+    }
+
+    int flag = 0;
+    while(!flag) {
+      flag = 1;
+      for(int64_t i = 0; i < 4; i++) {
+        if(right[i] > left[i]) {
+          flag = 0;
+          mid[i] = left[i] + ((right[i] - left[i]) / 2);
+          mask[i] = (data[mid[i]] - targets[i]) >> 63;
+          left[i] = (mid[i] + 1) & mask[i] | left[i] & ~mask[i];
+          right[i] = mid[i] & ~mask[i] | right[i] & mask[i];
+        }
+      }
+     
+    }
+
 
 
 }
@@ -198,8 +232,21 @@ inline void low_bin_nb_simd(int64_t* data, int64_t size, __m256i target, __m256i
   */
 
 
- /* YOUR CODE HERE */
+ //initalize variables
+  __m256i left = _mm256_set1_epi64x(0);
+  __m256i right = _mm256_set1_epi64x(size);
+  __m256i one = _mm256_set1_epi64x(1);
 
+ while (!_mm256_testc_si256(_mm256_cmpeq_epi64(left, right), _mm256_set1_epi64x(-1))) {
+        __m256i mid = _mm256_add_epi64(left, _mm256_srli_epi64(_mm256_sub_epi64(right, left), 1));
+        __m256i mid_values = _mm256_i64gather_epi64((const long long int*)data, mid, 8);
+        __m256i cmp = _mm256_cmpgt_epi64(target, mid_values);
+
+        left = _mm256_blendv_epi8(left, _mm256_add_epi64(mid, one), cmp);
+        right = _mm256_blendv_epi8(mid, right, cmp);
+    }
+  
+  *result = right;
 
 
 }
