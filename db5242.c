@@ -129,10 +129,10 @@ inline int64_t low_bin_nb_mask(int64_t* data, int64_t size, int64_t target)
 
   while(left < right) {
      mid = left + ((right - left) / 2);
-     //set up a mask
+     //set up a mask used to update the right and left values
      int64_t conditionMask = (target > data[mid]) - 1; //if target > data[mid] then the mask will be 0xFFFFFFFFFFFFFFFF, otherwise set to 0
-     left = (mid + 1) & conditionMask | left & ~conditionMask;
-     right = mid & ~conditionMask | right & conditionMask;
+     left = (mid + 1) & conditionMask | left & ~conditionMask; //left updates when target > data[mid]
+     right = mid & ~conditionMask | right & conditionMask; //right moves down
     
   }
 
@@ -232,11 +232,13 @@ inline void low_bin_nb_simd(int64_t* data, int64_t size, __m256i target, __m256i
   */
 
 
- //initalize variables
+  //initalize variables right set to 0 and left set to size.
   __m256i left = _mm256_set1_epi64x(0);
   __m256i right = _mm256_set1_epi64x(size);
   __m256i one = _mm256_set1_epi64x(1);
+  //updates the indicies by creating a constant vector of 1.
 
+  //loop will compare until left == right
  while (!_mm256_testc_si256(_mm256_cmpeq_epi64(left, right), _mm256_set1_epi64x(-1))) {
         __m256i mid = _mm256_add_epi64(left, _mm256_srli_epi64(_mm256_sub_epi64(right, left), 1));
         __m256i mid_values = _mm256_i64gather_epi64((const long long int*)data, mid, 8);
