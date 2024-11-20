@@ -334,9 +334,54 @@ int64_t band_join(int64_t* inner, int64_t inner_size, int64_t* outer, int64_t ou
      arrays. The return value of the function should be the number of output results.
 
   */
+    int64_t result = 0;
+    int flag = 0; // Flag used to stop the loop when the result arrays are full
+    int64_t i = 0;
 
-      /* YOUR CODE HERE */
+    while (i < outer_size && !flag) {
+        int64_t target = outer[i];
+        int64_t targetValues[4] = {target - bound, target - bound, target + bound, target + bound};
+        int64_t right[4];
 
+        low_bin_nb_4x(inner, inner_size, targetValues, right); // Finds the range
+
+        // Collect the results in the range
+        int64_t j = right[0];
+        while (j < inner_size && inner[j] <= target + bound && !flag) {
+            if (target - bound <= inner[j]) {
+                if (result < result_size) {
+                    inner_results[result] = j;
+                    outer_results[result] = i;
+                    result++;
+                } else {
+                    flag = 1; // Once the array is full, set the flag to end the loop
+                }
+            }
+            j++;
+        }
+
+        // Handle remaining records if outer_size is not a multiple of 4
+        if (i % 4 != 0) {
+            int64_t remaining_target = outer[i];
+            int64_t remainRight = low_bin_nb_mask(inner, inner_size, remaining_target - bound);
+            while (remainRight < inner_size && inner[remainRight] <= remaining_target + bound && !flag) {
+                if (remaining_target - bound <= inner[remainRight]) {
+                    if (result < result_size) {
+                        inner_results[result] = remainRight;
+                        outer_results[result] = i;
+                        result++;
+                    } else {
+                        flag = 1; // Set the flag to indicate the result array is full
+                    }
+                }
+                remainRight++;
+            }
+        }
+
+        i++;
+    }
+
+    return result;
 }
 
 int64_t band_join_simd(int64_t* inner, int64_t inner_size, int64_t* outer, int64_t outer_size, int64_t* inner_results, int64_t* outer_results, int64_t result_size, int64_t bound)
@@ -358,7 +403,19 @@ int64_t band_join_simd(int64_t* inner, int64_t inner_size, int64_t* outer, int64
      This inner scanning code does not have to use SIMD.
   */
 
-      /* YOUR CODE HERE */
+     int64_t result = 0;
+     __m256i boundVec = _mm256_set1_epi64x(bound);
+     int64_t i = 0;
+     while( i < outer_size) {
+      int64_t remain = outer_size - i < 4 ? outer_size - i : 4;
+      __m256i outerVec = _mm256_loadu_si256((__m256i*)&outer[i]);
+      __m256i lowerBound = _mm256_sub_epi64(outerVec, boundVec);
+      __m256i upperBound = _mm256_add_epi64(outerVec, boundVec);
+      __m256i upperIndices;
+      __m256i lowerIndecies;
+
+      i += 4;
+     }
 
 }
 
