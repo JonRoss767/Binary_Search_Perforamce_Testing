@@ -405,20 +405,57 @@ int64_t band_join_simd(int64_t* inner, int64_t inner_size, int64_t* outer, int64
      This inner scanning code does not have to use SIMD.
   */
 
-     int64_t result = 0;
-     __m256i boundVec = _mm256_set1_epi64x(bound);
-     int64_t i = 0;
-     while( i < outer_size) {
-      int64_t remain = outer_size - i < 4 ? outer_size - i : 4;
-      __m256i outerVec = _mm256_loadu_si256((__m256i*)&outer[i]);
-      __m256i lowerBound = _mm256_sub_epi64(outerVec, boundVec);
-      __m256i upperBound = _mm256_add_epi64(outerVec, boundVec);
-      __m256i upperIndices;
-      __m256i lowerIndecies;
+      int64_t result = 0;
+    __m256i boundVec = _mm256_set1_epi64x(bound);
+    int64_t i = 0;
 
-      i += 4;
-     }
+    while (i < outer_size) {
+        int64_t remaining = outer_size - i < 4 ? outer_size - i : 4;
+        __m256i outerVec = _mm256_loadu_si256((__m256i*)&outer[i]);
+        __m256i lowerBound = _mm256_sub_epi64(outerVec, boundVec);
+        __m256i upperBound = _mm256_add_epi64(outerVec, boundVec);
 
+        for (int j = 0; j < remaining; ++j) {
+            int64_t lower = _mm256_extract_epi64(lowerBound, j);
+            int64_t upper = _mm256_extract_epi64(upperBound, j);
+            int64_t outerIndex = i + j;
+
+            // Scan inner array for matches
+            for (int64_t k = 0; k < inner_size; ++k) {
+                if (inner[k] >= lower && inner[k] <= upper) {
+                    if (result < result_size) {
+                        outer_results[result] = outerIndex;
+                        inner_results[result] = k;
+                        result++;
+                    } else {
+                        return result;  
+                    }
+                }
+            }
+        }
+
+        i += 4;  // Move to the next set of 4 outer values
+    }
+
+    // Handle remaining outer records without SIMD
+    for (; i < outer_size; ++i) {
+        int64_t lower = outer[i] - bound;
+        int64_t upper = outer[i] + bound;
+
+        for (int64_t k = 0; k < inner_size; ++k) {
+            if (inner[k] >= lower && inner[k] <= upper) {
+                if (result < result_size) {
+                    outer_results[result] = i;
+                    inner_results[result] = k;
+                    result++;
+                } else {
+                    return result;  
+                }
+            }
+        }
+    }
+
+    return result;
 }
 
 int
