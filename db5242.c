@@ -129,10 +129,10 @@ inline int64_t low_bin_nb_mask(int64_t* data, int64_t size, int64_t target)
 
   while(left < right) {
      mid = left + ((right - left) / 2);
-     //set up a mask
+     //set up a mask used to update the right and left values
      int64_t conditionMask = (target > data[mid]) - 1; //if target > data[mid] then the mask will be 0xFFFFFFFFFFFFFFFF, otherwise set to 0
-     left = (mid + 1) & conditionMask | left & ~conditionMask;
-     right = mid & ~conditionMask | right & conditionMask;
+     left = (mid + 1) & conditionMask | left & ~conditionMask; //left updates when target > data[mid]
+     right = mid & ~conditionMask | right & conditionMask; //right moves down
     
   }
 
@@ -232,11 +232,13 @@ inline void low_bin_nb_simd(int64_t* data, int64_t size, __m256i target, __m256i
   */
 
 
- //initalize variables
+  //initalize variables right set to 0 and left set to size.
   __m256i left = _mm256_set1_epi64x(0);
   __m256i right = _mm256_set1_epi64x(size);
   __m256i one = _mm256_set1_epi64x(1);
+  //updates the indicies by creating a constant vector of 1.
 
+  //loop will compare until left == right
  while (!_mm256_testc_si256(_mm256_cmpeq_epi64(left, right), _mm256_set1_epi64x(-1))) {
         __m256i mid = _mm256_add_epi64(left, _mm256_srli_epi64(_mm256_sub_epi64(right, left), 1));
         __m256i mid_values = _mm256_i64gather_epi64((const long long int*)data, mid, 8);
@@ -334,7 +336,7 @@ int64_t band_join(int64_t* inner, int64_t inner_size, int64_t* outer, int64_t ou
      arrays. The return value of the function should be the number of output results.
 
   */
-    int64_t result = 0;
+    int64_t result = 0; //keep track of the records found
     int flag = 0; // Flag used to stop the loop when the result arrays are full
     int64_t i = 0;
 
@@ -343,7 +345,7 @@ int64_t band_join(int64_t* inner, int64_t inner_size, int64_t* outer, int64_t ou
         int64_t targetValues[4] = {target - bound, target - bound, target + bound, target + bound};
         int64_t right[4];
 
-        low_bin_nb_4x(inner, inner_size, targetValues, right); // Finds the range
+        low_bin_nb_4x(inner, inner_size, targetValues, right); // Finds the range in the inner table
 
         // Collect the results in the range
         int64_t j = right[0];
@@ -407,15 +409,31 @@ int64_t band_join_simd(int64_t* inner, int64_t inner_size, int64_t* outer, int64
      __m256i boundVec = _mm256_set1_epi64x(bound);
      int64_t i = 0;
      while( i < outer_size) {
-      int64_t remain = outer_size - i < 4 ? outer_size - i : 4;
+      int64_t remaining = outer_size - i < 4 ? outer_size - i : 4;
       __m256i outerVec = _mm256_loadu_si256((__m256i*)&outer[i]);
       __m256i lowerBound = _mm256_sub_epi64(outerVec, boundVec);
       __m256i upperBound = _mm256_add_epi64(outerVec, boundVec);
-      __m256i upperIndices;
-      __m256i lowerIndecies;
+      for(int j = 0; j < remaining; ++j) {
+        int64_t lower = __mm256_extract_epi64(lowerBound, j);
+        int64_t upper = __mm256_extract_epi64(upperBound, j);
+        int64_t outerIndex = i + j;
+         for(int64_t k = 0; k < inner_size; ++k) {
+        if(inner[k] >= lower && inner[k] <= upper) {
+          if(result < result_size) {
+            outer_results[result] = outerIndex;
+            inner_results[result] = k;
+            result++;
+          } else {
+            return result;
+          }
+       }
+     
+        } 
+      }
 
       i += 4;
      }
+     return result;
 
 }
 
