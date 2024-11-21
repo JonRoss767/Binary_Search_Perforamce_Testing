@@ -1,0 +1,210 @@
+X = 10, R = 1
+Time in bulk_bin_search loop is 1 microseconds or 0.100000 microseconds per search
+Time in bulk_bin_search_4x loop is 0 microseconds or 0.000000 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 10, R = 2
+Time in bulk_bin_search loop is 1 microseconds or 0.050000 microseconds per search
+Time in bulk_bin_search_4x loop is 0 microseconds or 0.000000 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 10, R = 4
+Time in bulk_bin_search loop is 1 microseconds or 0.025000 microseconds per search
+Time in bulk_bin_search_4x loop is 1 microseconds or 0.025000 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 10, R = 8
+Time in bulk_bin_search loop is 1 microseconds or 0.012500 microseconds per search
+Time in bulk_bin_search_4x loop is 0 microseconds or 0.000000 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 10, R = 16
+Time in bulk_bin_search loop is 1 microseconds or 0.006250 microseconds per search
+Time in bulk_bin_search_4x loop is 1 microseconds or 0.006250 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 100, R = 1
+Time in bulk_bin_search loop is 4 microseconds or 0.040000 microseconds per search
+Time in bulk_bin_search_4x loop is 1 microseconds or 0.010000 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 100, R = 2
+Time in bulk_bin_search loop is 6 microseconds or 0.030000 microseconds per search
+Time in bulk_bin_search_4x loop is 2 microseconds or 0.010000 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 100, R = 4
+Time in bulk_bin_search loop is 7 microseconds or 0.017500 microseconds per search
+Time in bulk_bin_search_4x loop is 5 microseconds or 0.012500 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 100, R = 8
+Time in bulk_bin_search loop is 12 microseconds or 0.015000 microseconds per search
+Time in bulk_bin_search_4x loop is 8 microseconds or 0.010000 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 100, R = 16
+Time in bulk_bin_search loop is 31 microseconds or 0.019375 microseconds per search
+Time in bulk_bin_search_4x loop is 15 microseconds or 0.009375 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 1000, R = 1
+Time in bulk_bin_search loop is 56 microseconds or 0.056000 microseconds per search
+Time in bulk_bin_search_4x loop is 14 microseconds or 0.014000 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 1000, R = 2
+Time in bulk_bin_search loop is 95 microseconds or 0.047500 microseconds per search
+Time in bulk_bin_search_4x loop is 27 microseconds or 0.013500 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 1000, R = 4
+Time in bulk_bin_search loop is 116 microseconds or 0.029000 microseconds per search
+Time in bulk_bin_search_4x loop is 54 microseconds or 0.013500 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 1000, R = 8
+Time in bulk_bin_search loop is 187 microseconds or 0.023375 microseconds per search
+Time in bulk_bin_search_4x loop is 114 microseconds or 0.014250 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 1000, R = 16
+Time in bulk_bin_search loop is 246 microseconds or 0.015375 microseconds per search
+Time in bulk_bin_search_4x loop is 215 microseconds or 0.013437 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 10000, R = 1
+Time in bulk_bin_search loop is 766 microseconds or 0.076600 microseconds per search
+Time in bulk_bin_search_4x loop is 218 microseconds or 0.021800 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 10000, R = 2
+Time in bulk_bin_search loop is 1462 microseconds or 0.073100 microseconds per search
+Time in bulk_bin_search_4x loop is 448 microseconds or 0.022400 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 10000, R = 4
+Time in bulk_bin_search loop is 2879 microseconds or 0.071975 microseconds per search
+Time in bulk_bin_search_4x loop is 871 microseconds or 0.021775 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 1 microseconds or inf microseconds per outer record
+
+X = 10000, R = 8
+Time in bulk_bin_search loop is 5685 microseconds or 0.071063 microseconds per search
+Time in bulk_bin_search_4x loop is 1735 microseconds or 0.021687 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 10000, R = 16
+Time in bulk_bin_search loop is 11247 microseconds or 0.070294 microseconds per search
+Time in bulk_bin_search_4x loop is 3450 microseconds or 0.021562 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 100000, R = 1
+Time in bulk_bin_search loop is 11419 microseconds or 0.114190 microseconds per search
+Time in bulk_bin_search_4x loop is 3753 microseconds or 0.037530 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 100000, R = 2
+Time in bulk_bin_search loop is 21921 microseconds or 0.109605 microseconds per search
+Time in bulk_bin_search_4x loop is 7355 microseconds or 0.036775 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 100000, R = 4
+Time in bulk_bin_search loop is 43289 microseconds or 0.108222 microseconds per search
+Time in bulk_bin_search_4x loop is 14991 microseconds or 0.037477 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 100000, R = 8
+Time in bulk_bin_search loop is 86370 microseconds or 0.107963 microseconds per search
+Time in bulk_bin_search_4x loop is 29598 microseconds or 0.036998 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 100000, R = 16
+Time in bulk_bin_search loop is 170805 microseconds or 0.106753 microseconds per search
+Time in bulk_bin_search_4x loop is 60192 microseconds or 0.037620 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 1000000, R = 1
+Time in bulk_bin_search loop is 157712 microseconds or 0.157712 microseconds per search
+Time in bulk_bin_search_4x loop is 55107 microseconds or 0.055107 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 1000000, R = 2
+Time in bulk_bin_search loop is 311003 microseconds or 0.155501 microseconds per search
+Time in bulk_bin_search_4x loop is 111594 microseconds or 0.055797 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 1000000, R = 4
+Time in bulk_bin_search loop is 616199 microseconds or 0.154050 microseconds per search
+Time in bulk_bin_search_4x loop is 220198 microseconds or 0.055050 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 1000000, R = 8
+Time in bulk_bin_search loop is 1258217 microseconds or 0.157277 microseconds per search
+Time in bulk_bin_search_4x loop is 454644 microseconds or 0.056830 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 1000000, R = 16
+Time in bulk_bin_search loop is 2474996 microseconds or 0.154687 microseconds per search
+Time in bulk_bin_search_4x loop is 893882 microseconds or 0.055868 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 10000000, R = 1
+Time in bulk_bin_search loop is 2714280 microseconds or 0.271428 microseconds per search
+Time in bulk_bin_search_4x loop is 1569596 microseconds or 0.156960 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 10000000, R = 2
+Time in bulk_bin_search loop is 5337229 microseconds or 0.266861 microseconds per search
+Time in bulk_bin_search_4x loop is 3103644 microseconds or 0.155182 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 10000000, R = 4
+Time in bulk_bin_search loop is 10703692 microseconds or 0.267592 microseconds per search
+Time in bulk_bin_search_4x loop is 6202578 microseconds or 0.155064 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 10000000, R = 8
+Time in bulk_bin_search loop is 20888703 microseconds or 0.261109 microseconds per search
+Time in bulk_bin_search_4x loop is 10866193 microseconds or 0.135827 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
+X = 10000000, R = 16
+Time in bulk_bin_search loop is 47696247 microseconds or 0.298102 microseconds per search
+Time in bulk_bin_search_4x loop is 23950303 microseconds or 0.149689 microseconds per search
+Band join result size is 0 with an average of 0.000000 matches per output record
+Time in band_join loop is 0 microseconds or -nan microseconds per outer record
+
