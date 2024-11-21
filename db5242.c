@@ -386,50 +386,58 @@ int64_t band_join(int64_t* inner, int64_t inner_size, int64_t* outer, int64_t ou
     return result;
 }
 
-int64_t band_join_simd(int64_t* inner, int64_t inner_size, int64_t* outer, int64_t outer_size, int64_t* inner_results, int64_t* outer_results, int64_t result_size, int64_t bound) {
-    int64_t result = 0;
+int64_t band_join_simd(int64_t* inner, int64_t inner_size, int64_t* outer, int64_t outer_size, int64_t* inner_results, int64_t* outer_results, int64_t result_size, int64_t bound)
+{
+  /* In a band join we want matches within a range of values.  If p is the probe value from the outer table, then all
+     reccords in the inner table with a key in the range [p-bound,p+bound] inclusive should be part of the result.
+
+     Results are returned via two arrays. outer_results stores the index of the outer table row that matches, and
+     inner_results stores the index of the inner table row that matches.  result_size tells you the size of the
+     output array that has been allocated. You should make sure that you don't exceed this size.  If there are
+     more results than can fit in the result arrays, then return early with just a prefix of the results in the result
+     arrays. The return value of the function should be the number of output results.
+
+     To do the binary search, you could use the low_bin_nb_simd you just implemented to search for the lower bounds in parallel
+
+     Once you've found the lower bounds, do the following for each of the 4 search keys in turn:
+        scan along the sorted inner array, generating outputs for each match, and making sure not to exceed the output array bounds.
+
+     This inner scanning code does not have to use SIMD.
+  */
+
+      int64_t result = 0;
     __m256i boundVec = _mm256_set1_epi64x(bound);
     int64_t i = 0;
 
-    // Process main chunks with SIMD
-    while (i + 4 <= outer_size) {
+    while (i < outer_size) {
+        int64_t remaining = outer_size - i < 4 ? outer_size - i : 4;
         __m256i outerVec = _mm256_loadu_si256((__m256i*)&outer[i]);
         __m256i lowerBound = _mm256_sub_epi64(outerVec, boundVec);
         __m256i upperBound = _mm256_add_epi64(outerVec, boundVec);
 
-        int64_t lowerBounds[4];
-        int64_t upperBounds[4];
-        _mm256_storeu_si256((__m256i*)lowerBounds, lowerBound);
-        _mm256_storeu_si256((__m256i*)upperBounds, upperBound);
-
-        for (int j = 0; j < 4; ++j) {
-            int64_t lower = lowerBounds[j];
-            int64_t upper = upperBounds[j];
+        for (int j = 0; j < remaining; ++j) {
+            int64_t lower = _mm256_extract_epi64(lowerBound, j);
+            int64_t upper = _mm256_extract_epi64(upperBound, j);
             int64_t outerIndex = i + j;
 
-            // Use i64gather to load values from the inner array
-            __m256i indices = _mm256_set_epi64x(3, 2, 1, 0);
-            __m256i innerValues = _mm256_i64gather_epi64((const long long int*)inner, indices, sizeof(int64_t));
-
-            int64_t innerVals[4];
-            _mm256_storeu_si256((__m256i*)innerVals, innerValues);
-
-            for (int l = 0; l < 4; ++l) {
-                if (innerVals[l] >= lower && innerVals[l] <= upper) {
+            // Scan inner array for matches
+            for (int64_t k = 0; k < inner_size; ++k) {
+                if (inner[k] >= lower && inner[k] <= upper) {
                     if (result < result_size) {
                         outer_results[result] = outerIndex;
-                        inner_results[result] = l;
+                        inner_results[result] = k;
                         result++;
                     } else {
-                        return result;
+                        return result;  
                     }
                 }
             }
         }
-        i += 4;
+
+        i += 4;  // Move to the next set of 4 outer values
     }
 
-    // Handle leftover records with low_bin_nb_mask
+    // Handle remaining outer records without SIMD
     for (; i < outer_size; ++i) {
         int64_t lower = outer[i] - bound;
         int64_t upper = outer[i] + bound;
@@ -441,7 +449,7 @@ int64_t band_join_simd(int64_t* inner, int64_t inner_size, int64_t* outer, int64
                     inner_results[result] = k;
                     result++;
                 } else {
-                    return result;
+                    return result;  
                 }
             }
         }
