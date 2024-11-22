@@ -98,15 +98,19 @@ inline int64_t low_bin_nb_arithmetic(int64_t* data, int64_t size, int64_t target
   */
   int64_t left = 0;
   int64_t right = size;
-  int64_t mid;
+  
 
   while(left < right) {
 
-    mid = (left + right) >> 1; // use a right shift instead of division to improve performance  
+   int64_t mid = left + ((right - left) >> 1); // use a right shift instead of division to improve performance  
     // Check if the middle element is less then the target.
-    int64_t lessThan = (data[mid] < target);
-    left = left + lessThan * (mid + 1 - left); //update left if mid is less than the target.
-    right = right - (1 - lessThan) * (right - mid); //updates right if mid is greater or equal to the target.
+    int64_t lessThan = -(data[mid] < target);
+    int64_t shiftLeft = mid + 1 - left; //variable is the distance to shift left.
+    int64_t shiftRight = right - mid; //variable is the distance to shift right
+
+    //bounds get updated using bitwise operations
+    left = left + (lessThan & shiftLeft); 
+    right = right - ((~lessThan) & shiftRight); 
 
   }
   return right;
