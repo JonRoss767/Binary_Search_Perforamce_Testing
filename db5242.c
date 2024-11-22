@@ -32,11 +32,10 @@ static int compare(const void *p1, const void *p2)
 }
 
 /* initialize searches and data - data is sorted and searches is a random permutation of data */
-int init(int64_t* data, int64_t* searches, int count)
-{
-  for(int64_t i=0; i<count; i++){
+int init(int64_t* data, int64_t* searches, int count) {
+  for(int64_t i = 0; i < count; i++){
     searches[i] = rand();
-    data[i] = searches[i]+1;
+    data[i] = searches[i] + 1;
   }
   qsort(data,count,sizeof(int64_t),compare);
 }
@@ -44,7 +43,7 @@ int init(int64_t* data, int64_t* searches, int count)
 /* initialize outer probes of band join */
 int band_init(int64_t* outer, int64_t size)
 {
-  for(int64_t i=0; i<size; i++){
+  for(int64_t i = 0; i < size; i++){
     outer[i] = rand();
   }
 }
@@ -97,13 +96,13 @@ inline int64_t low_bin_nb_arithmetic(int64_t* data, int64_t size, int64_t target
 	 identify the first key in the range.
      (c) If the search key is bigger than all keys, it returns size.
   */
-  int64_t left=0;
-  int64_t right=size;
+  int64_t left = 0;
+  int64_t right = size;
   int64_t mid;
 
-  while(left<right) {
+  while(left < right) {
 
-    mid = (left + right) / 2; 
+    mid = (left + right) >> 1; // use a right shift instead of division to improve performance  
     // Check if the middle element is less then the target.
     int64_t lessThan = (data[mid] < target);
     left = left + lessThan * (mid + 1 - left); //update left if mid is less than the target.
@@ -128,7 +127,7 @@ inline int64_t low_bin_nb_mask(int64_t* data, int64_t size, int64_t target)
   int64_t mid;
 
   while(left < right) {
-     mid = left + ((right - left) / 2);
+     mid = left + ((right - left) >> 1);
      //set up a mask used to update the right and left values
      int64_t conditionMask = (target > data[mid]) - 1; //if target > data[mid] then the mask will be 0xFFFFFFFFFFFFFFFF, otherwise set to 0
      left = (mid + 1) & conditionMask | left & ~conditionMask; //left updates when target > data[mid]
@@ -155,31 +154,28 @@ inline void low_bin_nb_4x(int64_t* data, int64_t size, int64_t* targets, int64_t
   */
 
     //intialize the arrays for left and right
+     // Initialize the arrays for left and right
     int64_t left[4] = {0, 0, 0, 0};
     int64_t mask[4];
     int64_t mid[4];
 
-    for(int64_t i = 0; i < 4; i++) {
-      right[i] = size; //initalized to the size
+    for (int64_t i = 0; i < 4; i++) {
+        right[i] = size; // Initialized to the size
     }
 
     int flag = 0;
-    while(!flag) {
-      flag = 1;
-      for(int64_t i = 0; i < 4; i++) {
-        if(right[i] > left[i]) {
-          flag = 0;
-          mid[i] = left[i] + ((right[i] - left[i]) / 2);
-          mask[i] = (data[mid[i]] - targets[i]) >> 63;
-          left[i] = (mid[i] + 1) & mask[i] | left[i] & ~mask[i];
-          right[i] = mid[i] & ~mask[i] | right[i] & mask[i];
+    while (!flag) {
+        flag = 1;
+        for (int64_t i = 0; i < 4; i++) {
+            if (right[i] > left[i]) {
+                flag = 0;
+                mid[i] = left[i] + ((right[i] - left[i]) / 2);
+                mask[i] = (data[mid[i]] - targets[i]) >> 63;
+                left[i] = (mid[i] + 1) & mask[i] | left[i] & ~mask[i];
+                right[i] = mid[i] & ~mask[i] | right[i] & mask[i];
+            }
         }
-      }
-     
     }
-
-
-
 }
 
 
@@ -362,25 +358,25 @@ int64_t band_join(int64_t* inner, int64_t inner_size, int64_t* outer, int64_t ou
             j++;
         }
 
-        // Handle remaining records if outer_size is not a multiple of 4
-        if (i % 4 != 0) {
-            int64_t remaining_target = outer[i];
-            int64_t remainRight = low_bin_nb_mask(inner, inner_size, remaining_target - bound);
-            while (remainRight < inner_size && inner[remainRight] <= remaining_target + bound && !flag) {
-                if (remaining_target - bound <= inner[remainRight]) {
-                    if (result < result_size) {
-                        inner_results[result] = remainRight;
-                        outer_results[result] = i;
-                        result++;
-                    } else {
-                        flag = 1; // Set the flag to indicate the result array is full
-                    }
-                }
-                remainRight++;
-            }
-        }
-
         i++;
+    }
+
+    // Handle remaining records if outer_size is not a multiple of 4
+    for (; i < outer_size; ++i) {
+        int64_t remaining_target = outer[i];
+        int64_t remainRight = low_bin_nb_mask(inner, inner_size, remaining_target - bound);
+        while (remainRight < inner_size && inner[remainRight] <= remaining_target + bound && !flag) {
+            if (remaining_target - bound <= inner[remainRight]) {
+                if (result < result_size) {
+                    inner_results[result] = remainRight;
+                    outer_results[result] = i;
+                    result++;
+                } else {
+                    flag = 1; // Set the flag to indicate the result array is full
+                }
+            }
+            remainRight++;
+        }
     }
 
     return result;
@@ -459,7 +455,7 @@ int64_t band_join_simd(int64_t* inner, int64_t inner_size, int64_t* outer, int64
                     inner_results[result] = k;
                     result++;
                 } else {
-                    return result;  
+                    return result;
                 }
             }
         }
@@ -549,7 +545,7 @@ main(int argc, char *argv[])
 	   init(data,queries,arraysize);
 	   band_init(outer,outer_size);
 
-#ifdef DEBUG
+//#ifdef DEBUG
 	   /* show the arrays */
 	   printf("data: ");
 	   for(int64_t i=0;i<arraysize;i++) printf("%ld ",data[i]);
@@ -560,7 +556,7 @@ main(int argc, char *argv[])
 	   printf("outer: ");
 	   for(int64_t i=0;i<outer_size;i++) printf("%ld ",outer[i]);
 	   printf("\n");
-#endif
+//#endif
 
 
 	   /* now measure... */
@@ -593,12 +589,12 @@ main(int argc, char *argv[])
 	   printf("Band join result size is %ld with an average of %f matches per output record\n",total_results, 1.0*total_results/(1.0+outer_results[total_results-1]));
 	   printf("Time in band_join loop is %ld microseconds or %f microseconds per outer record\n", (after.tv_sec-before.tv_sec)*1000000+(after.tv_usec-before.tv_usec), 1.0*((after.tv_sec-before.tv_sec)*1000000+(after.tv_usec-before.tv_usec))/outer_size);
 
-#ifdef DEBUG
+//#ifdef DEBUG
 	   /* show the band_join results */
 	   printf("band_join results: ");
 	   for(int64_t i=0;i<total_results;i++) printf("(%ld,%ld) ",outer_results[i],inner_results[i]);
 	   printf("\n");
-#endif
+//#endif
 
 }
 
