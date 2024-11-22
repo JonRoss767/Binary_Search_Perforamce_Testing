@@ -545,7 +545,7 @@ main(int argc, char *argv[])
 	   init(data,queries,arraysize);
 	   band_init(outer,outer_size);
 
-//#ifdef DEBUG
+#ifdef DEBUG
 	   /* show the arrays */
 	   printf("data: ");
 	   for(int64_t i=0;i<arraysize;i++) printf("%ld ",data[i]);
@@ -556,7 +556,7 @@ main(int argc, char *argv[])
 	   printf("outer: ");
 	   for(int64_t i=0;i<outer_size;i++) printf("%ld ",outer[i]);
 	   printf("\n");
-//#endif
+#endif
 
 
 	   /* now measure... */
