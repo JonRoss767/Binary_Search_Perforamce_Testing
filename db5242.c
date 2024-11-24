@@ -415,28 +415,22 @@ int64_t band_join_simd(int64_t* inner, int64_t inner_size, int64_t* outer, int64
         __m256i lowerBound = _mm256_sub_epi64(outerVec, boundVec);
         __m256i upperBound = _mm256_add_epi64(outerVec, boundVec);
 
-        int64_t lowerBounds[4];
-        int64_t upperBounds[4];
-        _mm256_storeu_si256((__m256i*)lowerBounds, lowerBound);
-        _mm256_storeu_si256((__m256i*)upperBounds, upperBound);
+        __m256i lowerBounds;
+        low_bin_nb_simd(inner, inner_size, lowerBound, &lowerBounds);
+
+        int64_t lowerBoundsArr[4];
+        _mm256_storeu_si256((__m256i*)lowerBoundsArr, lowerBounds);
 
         for (int j = 0; j < 4; ++j) {
-            int64_t lower = lowerBounds[j];
-            int64_t upper = upperBounds[j];
+            int64_t lower = lowerBoundsArr[j];
+            int64_t upper = upperBound[j];
             int64_t outerIndex = i + j;
 
-            // Use i64gather to load values from the inner array
-            __m256i indices = _mm256_set_epi64x(3, 2, 1, 0);
-            __m256i innerValues = _mm256_i64gather_epi64((const long long int*)inner, indices, sizeof(int64_t));
-
-            int64_t innerVals[4];
-            _mm256_storeu_si256((__m256i*)innerVals, innerValues);
-
-            for (int l = 0; l < 4; ++l) {
-                if (innerVals[l] >= lower && innerVals[l] <= upper) {
+            for (int k = 0; k < 4; ++k) {
+                if (inner[k] >= lower && inner[k] <= upper) {
                     if (result < result_size) {
                         outer_results[result] = outerIndex;
-                        inner_results[result] = l;
+                        inner_results[result] = k;
                         result++;
                     } else {
                         return result;
@@ -452,6 +446,7 @@ int64_t band_join_simd(int64_t* inner, int64_t inner_size, int64_t* outer, int64
         int64_t lower = outer[i] - bound;
         int64_t upper = outer[i] + bound;
 
+        int64_t right = low_bin_nb_mask(inner, inner_size, lower);
         for (int64_t k = 0; k < inner_size; ++k) {
             if (inner[k] >= lower && inner[k] <= upper) {
                 if (result < result_size) {
@@ -593,12 +588,13 @@ main(int argc, char *argv[])
 	   printf("Band join result size is %ld with an average of %f matches per output record\n",total_results, 1.0*total_results/(1.0+outer_results[total_results-1]));
 	   printf("Time in band_join loop is %ld microseconds or %f microseconds per outer record\n", (after.tv_sec-before.tv_sec)*1000000+(after.tv_usec-before.tv_usec), 1.0*((after.tv_sec-before.tv_sec)*1000000+(after.tv_usec-before.tv_usec))/outer_size);
 
-//#ifdef DEBUG
+
+#ifdef DEBUG
 	   /* show the band_join results */
 	   printf("band_join results: ");
 	   for(int64_t i=0;i<total_results;i++) printf("(%ld,%ld) ",outer_results[i],inner_results[i]);
 	   printf("\n");
-//#endif
+#endif
 
 }
 
