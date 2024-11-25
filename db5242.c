@@ -336,54 +336,68 @@ int64_t band_join(int64_t* inner, int64_t inner_size, int64_t* outer, int64_t ou
      arrays. The return value of the function should be the number of output results.
 
   */
-    int64_t result = 0;
-    int flag = 0; // Flag used to stop the loop when the result arrays are full
-    int64_t i = 0;
+ int64_t result_count = 0; // Number of results written
+    int64_t temp_right[4];    // Temporary array for results from low_bin_nb_4x
+    int64_t lower_targets[4], upper_targets[4];
 
-    while (i < outer_size && !flag) {
-        int64_t target = outer[i];
-        int64_t targetValues[4] = {target - bound, target - bound, target + bound, target + bound};
-        int64_t right[4];
+    for (int64_t i = 0; i < outer_size; i += 4) {
+        // Process up to 4 outer records in parallel
+        int64_t batch_size = (i + 4 <= outer_size) ? 4 : (outer_size - i);
 
-        low_bin_nb_4x(inner, inner_size, targetValues, right); // Finds the range
-
-        // Collect the results in the range
-        int64_t j = right[0];
-        while (j < inner_size && inner[j] <= target + bound && !flag) {
-            if (target - bound <= inner[j]) {
-                if (result < result_size) {
-                    inner_results[result] = j;
-                    outer_results[result] = i;
-                    result++;
-                } else {
-                    flag = 1; // Once the array is full, set the flag to end the loop
-                }
-            }
-            j++;
+        // Calculate lower and upper bounds for each outer record in the batch
+        for (int64_t j = 0; j < batch_size; j++) {
+            lower_targets[j] = outer[i + j] - bound;
+            upper_targets[j] = outer[i + j] + bound;
         }
 
-        i++;
-    }
+        if (batch_size == 4) {
+            // Perform 4 binary searches for lower bounds in parallel
+            low_bin_nb_4x(inner, inner_size, lower_targets, temp_right);
+            int64_t low[4]; // Store lower bounds
+            for (int64_t j = 0; j < 4; j++) {
+                low[j] = temp_right[j];
+            }
 
-    // Handle remaining records if outer_size is not a multiple of 4
-    for (; i < outer_size; ++i) {
-        int64_t remaining_target = outer[i];
-        int64_t remainRight = low_bin_nb_mask(inner, inner_size, remaining_target - bound);
-        while (remainRight < inner_size && inner[remainRight] <= remaining_target + bound && !flag) {
-            if (remaining_target - bound <= inner[remainRight]) {
-                if (result < result_size) {
-                    inner_results[result] = remainRight;
-                    outer_results[result] = i;
-                    result++;
-                } else {
-                    flag = 1; // Set the flag to indicate the result array is full
+            // Perform 4 binary searches for upper bounds in parallel
+            low_bin_nb_4x(inner, inner_size, upper_targets, temp_right);
+            int64_t high[4]; // Store upper bounds
+            for (int64_t j = 0; j < 4; j++) {
+                high[j] = temp_right[j];
+
+                // Collect results for this outer record
+                for (int64_t k = low[j]; k < high[j] && result_count < result_size; k++) {
+                    outer_results[result_count] = i + j; // Store outer index
+                    inner_results[result_count] = k;    // Store inner index
+                    result_count++;
+                }
+
+                // Stop if output limit is reached
+                if (result_count >= result_size) {
+                    return result_count;
                 }
             }
-            remainRight++;
+        } else {
+            // For remaining records (batch size < 4), use low_bin_nb_mask
+            for (int64_t j = 0; j < batch_size; j++) {
+                int64_t low = low_bin_nb_mask(inner, inner_size, lower_targets[j]);
+                int64_t high = low_bin_nb_mask(inner, inner_size, upper_targets[j]);
+
+                // Collect results for this outer record
+                for (int64_t k = low; k < high && result_count < result_size; k++) {
+                    outer_results[result_count] = i + j; // Store outer index
+                    inner_results[result_count] = k;    // Store inner index
+                    result_count++;
+                }
+
+                // Stop if output limit is reached
+                if (result_count >= result_size) {
+                    return result_count;
+                }
+            }
         }
     }
 
-    return result;
+    return result_count; // Return the total number of results written
 }
 
 int64_t band_join_simd(int64_t* inner, int64_t inner_size, int64_t* outer, int64_t outer_size, int64_t* inner_results, int64_t* outer_results, int64_t result_size, int64_t bound)
@@ -405,63 +419,69 @@ int64_t band_join_simd(int64_t* inner, int64_t inner_size, int64_t* outer, int64
      This inner scanning code does not have to use SIMD.
   */
 
-     int64_t result = 0;
-    __m256i boundVec = _mm256_set1_epi64x(bound);
-    int64_t i = 0;
+  int64_t count = 0; // Initialize the count of results
 
-    // Process main chunks with SIMD
-    while (i + 4 <= outer_size) {
-        __m256i outerVec = _mm256_loadu_si256((__m256i*)&outer[i]);
-        __m256i lowerBound = _mm256_sub_epi64(outerVec, boundVec);
-        __m256i upperBound = _mm256_add_epi64(outerVec, boundVec);
+    __m256i bound_vec = _mm256_set1_epi64x(bound); // Broadcast bound to a SIMD register
 
-        __m256i lowerBounds;
-        low_bin_nb_simd(inner, inner_size, lowerBound, &lowerBounds);
+    int64_t i;
+    for (i = 0; i <= outer_size - 4; i += 4) {
+        // Load 4 outer values into an AVX2 register
+        __m256i outer_vec = _mm256_loadu_si256((__m256i*)&outer[i]);
 
-        int64_t lowerBoundsArr[4];
-        _mm256_storeu_si256((__m256i*)lowerBoundsArr, lowerBounds);
+        // Compute the lower and upper bounds
+        __m256i lower_bounds = _mm256_sub_epi64(outer_vec, bound_vec);
+        __m256i upper_bounds = _mm256_add_epi64(outer_vec, bound_vec);
 
-        for (int j = 0; j < 4; ++j) {
-            int64_t lower = lowerBoundsArr[j];
-            int64_t upper = upperBound[j];
-            int64_t outerIndex = i + j;
+        // Perform SIMD binary search for lower bounds
+        __m256i lower_result;
+        low_bin_nb_simd(inner, inner_size, lower_bounds, &lower_result);
 
-            for (int k = 0; k < 4; ++k) {
-                if (inner[k] >= lower && inner[k] <= upper) {
-                    if (result < result_size) {
-                        outer_results[result] = outerIndex;
-                        inner_results[result] = k;
-                        result++;
-                    } else {
-                        return result;
+        // Perform SIMD binary search for upper bounds
+        __m256i upper_result;
+        low_bin_nb_simd(inner, inner_size, upper_bounds, &upper_result);
+
+        // Convert results from SIMD to scalar for result processing
+        int64_t lower_indices[4];
+        int64_t upper_indices[4];
+        _mm256_storeu_si256((__m256i*)lower_indices, lower_result);
+        _mm256_storeu_si256((__m256i*)upper_indices, upper_result);
+
+        // Iterate through the results and populate inner and outer results
+        for (int j = 0; j < 4; j++) {
+            if (lower_indices[j] >= 0 && lower_indices[j] < inner_size && upper_indices[j] >= 0 && upper_indices[j] < inner_size) {
+                for (int64_t k = lower_indices[j]; k <= upper_indices[j] && count < result_size; k++) {
+                    if (count < result_size) {
+                        inner_results[count] = k;
+                        outer_results[count] = i + j;
+                        count++;
                     }
                 }
             }
         }
-        i += 4;
+
+        // Stop early if result array is full
+        if (count >= result_size) {
+            return count;
+        }
     }
 
-    // Handle remaining outer records without SIMD
-    for (; i < outer_size; ++i) {
-        int64_t lower = outer[i] - bound;
-        int64_t upper = outer[i] + bound;
+    // Handle leftover records using low_bin_nb_mask
+    for (; i < outer_size && count < result_size; i++) {
+        int64_t lower = low_bin_nb_mask(inner, inner_size, outer[i] - bound);
+        int64_t upper = low_bin_nb_mask(inner, inner_size, outer[i] + bound);
 
-        int64_t right = low_bin_nb_mask(inner, inner_size, lower);
-        for (int64_t k = 0; k < inner_size; ++k) {
-            if (inner[k] >= lower && inner[k] <= upper) {
-                if (result < result_size) {
-                    outer_results[result] = i;
-                    inner_results[result] = k;
-                    result++;
-                } else {
-                    return result;
-                }
+        for (int64_t k = lower; k <= upper && count < result_size; k++) {
+            if (count < result_size) {
+                inner_results[count] = k;
+                outer_results[count] = i;
+                count++;
             }
         }
     }
 
-    return result;
+    return count; // Return the total count of results
 }
+
 
 int
 main(int argc, char *argv[])
@@ -582,7 +602,7 @@ main(int argc, char *argv[])
 	   gettimeofday(&before,NULL);
 
 	   /* the code that you want to measure goes here; make a function call */
-	   total_results=band_join(data, arraysize, outer, outer_size, inner_results, outer_results, result_size, bound);
+	   total_results=band_join_simd(data, arraysize, outer, outer_size, inner_results, outer_results, result_size, bound);
 
 	   gettimeofday(&after,NULL);
 	   printf("Band join result size is %ld with an average of %f matches per output record\n",total_results, 1.0*total_results/(1.0+outer_results[total_results-1]));
