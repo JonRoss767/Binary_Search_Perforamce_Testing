@@ -11,8 +11,10 @@ This project focuses on testing the efficiency of various optimized binary searc
 - run the executable with the command ./dbms5242 N X Y Z R 
     - N: Number of elements in the array being searched
         This variable will specify the size of the data array that will be used for binary search operations
+        The element value will be between 1,000,000,000 and 9,999,999,999
     - X: Size of the out table for band join
         This variable defines how many elements are in the outer array, these elements will be used in the band join operation.
+        The element value will be between 1,000,000,000 and 9,999,999,999
     - Y: size of the output result. 
         This variable will have a varying number of successful matches between inner and outer tables. The result of the band join will be (0 < number <= Y).
         This output of Y is determined by the size of (N) and (X) and the bound of (Z)
@@ -21,6 +23,7 @@ This project focuses on testing the efficiency of various optimized binary searc
         A higher bound increaes the change the two elements are withing the bound and causing a match.
     - R: Number of repeates for the experiment
          This helps toward computing the the average run time over the multiple results to help create more reliable metrics.
+
 - Example:
     - ./db5242 10000 50 200 5 20
         N = 10000 random data array elements

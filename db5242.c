@@ -17,6 +17,7 @@
 #include <asm/unistd.h>
 #include <immintrin.h>
 
+
 /* uncomment out the following DEBUG line for debug info, for experiment comment the DEBUG line  */
 // #define DEBUG
 
@@ -555,7 +556,7 @@ main(int argc, char *argv[])
 	   init(data,queries,arraysize);
 	   band_init(outer,outer_size);
 
-#ifdef DEBUG
+//#ifdef DEBUG
 	   /* show the arrays */
 	   printf("data: ");
 	   for(int64_t i=0;i<arraysize;i++) printf("%ld ",data[i]);
@@ -566,7 +567,7 @@ main(int argc, char *argv[])
 	   printf("outer: ");
 	   for(int64_t i=0;i<outer_size;i++) printf("%ld ",outer[i]);
 	   printf("\n");
-#endif
+//#endif
 
 
 	   /* now measure... */
@@ -593,7 +594,7 @@ main(int argc, char *argv[])
 	   gettimeofday(&before,NULL);
 
 	   /* the code that you want to measure goes here; make a function call */
-	   total_results=band_join(data, arraysize, outer, outer_size, inner_results, outer_results, result_size, bound);
+	   total_results=band_join_simd(data, arraysize, outer, outer_size, inner_results, outer_results, result_size, bound);
 
 	   gettimeofday(&after,NULL);
 	   printf("Band join result size is %ld with an average of %f matches per output record\n",total_results, 1.0*total_results/(1.0+outer_results[total_results-1]));
