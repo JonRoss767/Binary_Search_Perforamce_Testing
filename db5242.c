@@ -126,16 +126,16 @@ inline int64_t low_bin_nb_mask(int64_t* data, int64_t size, int64_t target)
 	 identify the first key in the range.
      (c) If the search key is bigger than all keys, it returns size.
   */
-  int64_t left=0;
-  int64_t right=size;
+  int64_t left = 0;
+  int64_t right = size;
   int64_t mid;
 
   while(left < right) {
      mid = left + ((right - left) >> 1);
      //set up a mask used to update the right and left values
-     int64_t conditionMask = (target > data[mid]) - 1; //if target > data[mid] then the mask will be 0xFFFFFFFFFFFFFFFF, otherwise set to 0
-     left = (mid + 1) & conditionMask | left & ~conditionMask; //left updates when target > data[mid]
-     right = mid & ~conditionMask | right & conditionMask; //right moves down
+     int64_t conditionMask = (data[mid] < target); //if target > data[mid] then the mask will be 0xFFFFFFFFFFFFFFFF, otherwise set to 0
+     left = conditionMask ? (mid + 1) : left; //left updates when target > data[mid]
+     right = conditionMask ? right : mid; //right moves down
     
   }
 
@@ -224,7 +224,7 @@ inline void low_bin_nb_simd(int64_t* data, int64_t size, __m256i target, __m256i
      (c) If the search key is bigger than all keys, it returns size.
      (d) does 4 searches at the same time using AVX2 intrinsics
 
-     See https://www.intel.com/content/www/us/en/docs/cpp-compiler/developer-guide-reference/2021-8/intrinsics-for-avx2.html
+     See https://www.intel.com/content/www/us/en/docs/cpp-compiler/ddb .eveloper-guide-reference/2021-8/intrinsics-for-avx2.html
      for documentation of the AVX512 intrinsics
 
      Note that we're using the result array as the "right" elements in the search, and that searchkey is being passed
@@ -233,25 +233,31 @@ inline void low_bin_nb_simd(int64_t* data, int64_t size, __m256i target, __m256i
 
 
   //initalize variables right set to 0 and left set to size.
-  __m256i left = _mm256_set1_epi64x(0);
-  __m256i right = _mm256_set1_epi64x(size);
-  __m256i one = _mm256_set1_epi64x(1);
-  //updates the indicies by creating a constant vector of 1.
+    __m256i left = _mm256_setzero_si256();             // Left initialized to 0
+    __m256i right = _mm256_set1_epi64x(size);          // Right initialized to size
+    __m256i mask, mid;
 
-  //loop will compare until left == right
- while (!_mm256_testc_si256(_mm256_cmpeq_epi64(left, right), _mm256_set1_epi64x(-1))) {
-        __m256i mid = _mm256_add_epi64(left, _mm256_srli_epi64(_mm256_sub_epi64(right, left), 1));
-        __m256i mid_values = _mm256_i64gather_epi64((const long long int*)data, mid, 8);
-        __m256i cmp = _mm256_cmpgt_epi64(target, mid_values);
+ // While there are still active searches
+    while (_mm256_movemask_epi8(_mm256_cmpgt_epi64(right, left))) {
+        // Compute mid = left + (right - left) / 2
+        mid = _mm256_add_epi64(left, 
+               _mm256_srli_epi64(_mm256_sub_epi64(right, left), 1));
 
-        left = _mm256_blendv_epi8(left, _mm256_add_epi64(mid, one), cmp);
-        right = _mm256_blendv_epi8(mid, right, cmp);
+        // Load the data at mid indices
+        __m256i mid_values = _mm256_i64gather_epi64((const void*)data, mid, 8);
+
+        // Compare mid_values with target: mask = (data[mid] < target)
+        mask = _mm256_cmpgt_epi64(target, mid_values);
+
+        // Update left and right based on mask
+        left = _mm256_blendv_epi8(left, _mm256_add_epi64(mid, _mm256_set1_epi64x(1)), mask);
+        right = _mm256_blendv_epi8(mid, right, mask);
     }
-  
-  *result = right;
 
-
+    // Store the final right values as the result
+    *result = right;
 }
+
 
 void bulk_bin_search(int64_t* data, int64_t size, int64_t* searchkeys, int64_t numsearches, int64_t* results, int repeats)
 {
@@ -336,7 +342,7 @@ int64_t band_join(int64_t* inner, int64_t inner_size, int64_t* outer, int64_t ou
      arrays. The return value of the function should be the number of output results.
 
   */
- int64_t result_count = 0; // Number of results written
+     int64_t result_count = 0; // Number of results written
     int64_t temp_right[4];    // Temporary array for results from low_bin_nb_4x
     int64_t lower_targets[4], upper_targets[4];
 
@@ -351,16 +357,15 @@ int64_t band_join(int64_t* inner, int64_t inner_size, int64_t* outer, int64_t ou
         }
 
         if (batch_size == 4) {
-            // Perform 4 binary searches for lower bounds in parallel
+            // Perform 4 binary searches for lower and upper bounds in parallel
             low_bin_nb_4x(inner, inner_size, lower_targets, temp_right);
-            int64_t low[4]; // Store lower bounds
+            int64_t low[4];
             for (int64_t j = 0; j < 4; j++) {
                 low[j] = temp_right[j];
             }
 
-            // Perform 4 binary searches for upper bounds in parallel
             low_bin_nb_4x(inner, inner_size, upper_targets, temp_right);
-            int64_t high[4]; // Store upper bounds
+            int64_t high[4];
             for (int64_t j = 0; j < 4; j++) {
                 high[j] = temp_right[j];
 
@@ -419,67 +424,53 @@ int64_t band_join_simd(int64_t* inner, int64_t inner_size, int64_t* outer, int64
      This inner scanning code does not have to use SIMD.
   */
 
-  int64_t count = 0; // Initialize the count of results
+int64_t result_count = 0;
+    __m256i bound_vec = _mm256_set1_epi64x(bound);
 
-    __m256i bound_vec = _mm256_set1_epi64x(bound); // Broadcast bound to a SIMD register
+    for (int64_t i = 0; i < outer_size; i += 4) {
+        int64_t remaining = outer_size - i;
+        if (remaining < 4) {
+            for (int64_t j = 0; j < remaining; ++j) {
+                int64_t outer_val = outer[i + j];
+                int64_t lower_bound = low_bin_nb_mask(inner, inner_size, outer_val - bound);
+                int64_t upper_bound = low_bin_nb_mask(inner, inner_size, outer_val + bound + 1);
 
-    int64_t i;
-    for (i = 0; i <= outer_size - 4; i += 4) {
-        // Load 4 outer values into an AVX2 register
-        __m256i outer_vec = _mm256_loadu_si256((__m256i*)&outer[i]);
-
-        // Compute the lower and upper bounds
-        __m256i lower_bounds = _mm256_sub_epi64(outer_vec, bound_vec);
-        __m256i upper_bounds = _mm256_add_epi64(outer_vec, bound_vec);
-
-        // Perform SIMD binary search for lower bounds
-        __m256i lower_result;
-        low_bin_nb_simd(inner, inner_size, lower_bounds, &lower_result);
-
-        // Perform SIMD binary search for upper bounds
-        __m256i upper_result;
-        low_bin_nb_simd(inner, inner_size, upper_bounds, &upper_result);
-
-        // Convert results from SIMD to scalar for result processing
-        int64_t lower_indices[4];
-        int64_t upper_indices[4];
-        _mm256_storeu_si256((__m256i*)lower_indices, lower_result);
-        _mm256_storeu_si256((__m256i*)upper_indices, upper_result);
-
-        // Iterate through the results and populate inner and outer results
-        for (int j = 0; j < 4; j++) {
-            if (lower_indices[j] >= 0 && lower_indices[j] < inner_size && upper_indices[j] >= 0 && upper_indices[j] < inner_size) {
-                for (int64_t k = lower_indices[j]; k <= upper_indices[j] && count < result_size; k++) {
-                    if (count < result_size) {
-                        inner_results[count] = k;
-                        outer_results[count] = i + j;
-                        count++;
-                    }
+                for (int64_t k = lower_bound; k < upper_bound && result_count < result_size; ++k) {
+                    inner_results[result_count] = k;
+                    outer_results[result_count] = i + j;
+                    result_count++;
                 }
             }
+            break;
         }
 
-        // Stop early if result array is full
-        if (count >= result_size) {
-            return count;
-        }
-    }
+        __m256i outer_vals = _mm256_loadu_si256((__m256i*)&outer[i]);
+        __m256i lower_targets = _mm256_sub_epi64(outer_vals, bound_vec);
+        __m256i upper_targets = _mm256_add_epi64(outer_vals, bound_vec);
 
-    // Handle leftover records using low_bin_nb_mask
-    for (; i < outer_size && count < result_size; i++) {
-        int64_t lower = low_bin_nb_mask(inner, inner_size, outer[i] - bound);
-        int64_t upper = low_bin_nb_mask(inner, inner_size, outer[i] + bound);
+        __m256i lower_results, upper_results;
+        low_bin_nb_simd(inner, inner_size, lower_targets, &lower_results);
+        low_bin_nb_simd(inner, inner_size, upper_targets, &upper_results);
 
-        for (int64_t k = lower; k <= upper && count < result_size; k++) {
-            if (count < result_size) {
-                inner_results[count] = k;
-                outer_results[count] = i;
-                count++;
+        for (int j = 0; j < 4; ++j) {
+            int64_t lower_bound = ((int64_t*)&lower_results)[j];
+            int64_t upper_bound = ((int64_t*)&upper_results)[j];
+
+            //printf("outer[%ld]: lower_bound = %ld, upper_bound = %ld\n", i + j, lower_bound, upper_bound);
+
+            for (int64_t k = lower_bound; k < upper_bound && result_count < result_size; ++k) {
+                inner_results[result_count] = k;
+                outer_results[result_count] = i + j;
+                result_count++;
+            }
+
+            if (result_count >= result_size) {
+                return result_count;
             }
         }
     }
 
-    return count; // Return the total count of results
+    return result_count;
 }
 
 
@@ -602,14 +593,14 @@ main(int argc, char *argv[])
 	   gettimeofday(&before,NULL);
 
 	   /* the code that you want to measure goes here; make a function call */
-	   total_results=band_join_simd(data, arraysize, outer, outer_size, inner_results, outer_results, result_size, bound);
+	   total_results=band_join(data, arraysize, outer, outer_size, inner_results, outer_results, result_size, bound);
 
 	   gettimeofday(&after,NULL);
 	   printf("Band join result size is %ld with an average of %f matches per output record\n",total_results, 1.0*total_results/(1.0+outer_results[total_results-1]));
 	   printf("Time in band_join loop is %ld microseconds or %f microseconds per outer record\n", (after.tv_sec-before.tv_sec)*1000000+(after.tv_usec-before.tv_usec), 1.0*((after.tv_sec-before.tv_sec)*1000000+(after.tv_usec-before.tv_usec))/outer_size);
 
 
-#ifdef DEBUG
+#ifdef debug
 	   /* show the band_join results */
 	   printf("band_join results: ");
 	   for(int64_t i=0;i<total_results;i++) printf("(%ld,%ld) ",outer_results[i],inner_results[i]);
