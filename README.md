@@ -31,3 +31,13 @@ This project focuses on testing the efficiency of various optimized binary searc
         Y = 200 maximum number of results to output
         Z = the bound between outer and data array has to be within 5.
         R = The program will run 20 times and calculate the average time.
+
+- Testing: Binary Search
+    - Lines 309-316 contain the different algorithms of binary search to test
+    - comment and uncomment the desire alogrithms before you run the test
+    - to run invoke ./db5242 N X Y Z R
+        N: is the number of elements in the array to be searched
+        R: Number of repeats of the experiment within the timing loop
+        NOTE: X, Y, Z can be supplied with dummy values
+
+- Testing band join
