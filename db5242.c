@@ -73,16 +73,16 @@ inline int64_t low_bin_search(int64_t* data, int64_t size, int64_t target)
 	 identify the first key in the range.
      (c) If the search key is bigger than all keys, it returns size.
   */
-  int64_t left=0;
-  int64_t right=size;
+  int64_t left = 0;
+  int64_t right = size;
   int64_t mid;
 
-  while(left<right) {
-    mid = (left + right)/2;   /* ignore possibility of overflow of left+right */
-    if (data[mid]>=target)
-      right=mid;
+  while(left < right) {
+    mid = (left + right) / 2;   /* ignore possibility of overflow of left+right */
+    if (data[mid] >= target)
+      right = mid;
     else
-      left=mid+1;
+      left = mid + 1;
   }
   return right;
 }
@@ -556,7 +556,7 @@ main(int argc, char *argv[])
 	   init(data,queries,arraysize);
 	   band_init(outer,outer_size);
 
-//#ifdef DEBUG
+#ifdef DEBUG
 	   /* show the arrays */
 	   printf("data: ");
 	   for(int64_t i=0;i<arraysize;i++) printf("%ld ",data[i]);
@@ -567,7 +567,7 @@ main(int argc, char *argv[])
 	   printf("outer: ");
 	   for(int64_t i=0;i<outer_size;i++) printf("%ld ",outer[i]);
 	   printf("\n");
-//#endif
+#endif
 
 
 	   /* now measure... */
@@ -594,7 +594,7 @@ main(int argc, char *argv[])
 	   gettimeofday(&before,NULL);
 
 	   /* the code that you want to measure goes here; make a function call */
-	   total_results=band_join_simd(data, arraysize, outer, outer_size, inner_results, outer_results, result_size, bound);
+	   total_results=band_join(data, arraysize, outer, outer_size, inner_results, outer_results, result_size, bound);
 
 	   gettimeofday(&after,NULL);
 	   printf("Band join result size is %ld with an average of %f matches per output record\n",total_results, 1.0*total_results/(1.0+outer_results[total_results-1]));
